@@ -18,7 +18,7 @@
 
     private List<Rigidbody> _captiveBirds;
     private int _birdLayer;
-    private bool _isOpen;
+    public bool _isOpen;
     private bool _isTweening;
 
     void Awake() {
@@ -69,12 +69,13 @@
     }
 
     public void OpenDoor() {
-      if (_isTweening) return;
-      _isTweening = true;
-      LeanTween.cancel(gameObject);
+      // if (_isTweening) return;
+      // LeanTween.cancel(gameObject);
       LeanTween
         .rotateLocal(doorHinge, doorOpenAngle, doorOpenSpeed)
         .setEaseOutBounce();
+      if (_isTweening) return;
+      _isTweening = true;
       // Rock forward & back
       LeanTween
         .rotateAround(gameObject, Vector3.right, -7f, 0.09f)
@@ -100,12 +101,12 @@
     }
 
     public void CloseDoor() {
-      if (_isTweening) return;
-      _isTweening = true;
-      LeanTween.cancel(gameObject);
+      // LeanTween.cancel(gameObject);
       LeanTween
         .rotateLocal(doorHinge, Vector3.zero, doorCloseSpeed)
         .setEaseInBack();
+      if (_isTweening) return;
+      _isTweening = true;
       // Rock back & forward
       LeanTween
         .rotateAround(gameObject, Vector3.right, 10f, 0.4f)
