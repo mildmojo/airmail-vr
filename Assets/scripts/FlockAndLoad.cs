@@ -32,6 +32,8 @@ namespace airmail {
     // [Header("Foo!")]
     // [Button("Hello", "Foo")]
     // public string foo;
+    [System.NonSerialized]
+    public float trapRangeAtCapture;
 
     private int _wpIdx;
     private int _birdLayer;

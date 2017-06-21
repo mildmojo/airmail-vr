@@ -2,7 +2,7 @@
 
 public class KillBox : MonoBehaviour {
   void OnTriggerEnter(Collider c) {
-    if (c.GetType() == typeof(MeshCollider)) {
+    if (c is MeshCollider) {
       Destroy(c.gameObject);
     }
   }

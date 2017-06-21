@@ -14,13 +14,8 @@ public class TrapController : MonoBehaviour {
     _birdLayer = LayerMask.NameToLayer("birds");
   }
 
-  // Update is called once per frame
-  void Update () {
-
-  }
-
   void OnTriggerEnter(Collider c) {
-    if (c.gameObject.layer == _birdLayer && c.GetType() == typeof(MeshCollider)) {
+    if (c.gameObject.layer == _birdLayer && c is MeshCollider) {
       OnCapture.Invoke(c.gameObject);
     }
 
