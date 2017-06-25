@@ -1,4 +1,5 @@
-﻿namespace airmail {
+﻿namespace Airmail {
+
   using System.Collections;
   using System.Collections.Generic;
   using UnityEngine;
@@ -43,4 +44,5 @@
       _screenFader.FadeOut(2f, () => Application.Quit());
     }
   }
+
 }

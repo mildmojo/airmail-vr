@@ -1,4 +1,4 @@
-﻿namespace airmail {
+﻿namespace Airmail {
 
   using System.Collections;
   using System.Collections.Generic;
