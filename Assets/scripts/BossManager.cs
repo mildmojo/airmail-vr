@@ -5,6 +5,7 @@
   using UnityEngine;
   using UnityEngine.Audio;
   using UnityEngine.UI;
+  using UnityEngine.SceneManagement;
 
   public class BossManager : MonoBehaviour {
     public static BossManager Instance;
@@ -52,7 +53,16 @@
       LeanTween.value(gameObject, val => masterMixer.SetFloat("volume", val), 0f, -80f, audioFadeOutTime)
         .setEaseInCirc();
       // Fade out visuals.
-      _screenFader.FadeOut(screenFadeOutTime, Application.Quit);
+      _screenFader.FadeOut(screenFadeOutTime, DoQuit);
+    }
+
+    void DoQuit() {
+      // Only quit if this is the only scene loaded. Otherwise load scene 0.
+      if (SceneManager.GetSceneAt(0) != SceneManager.GetActiveScene()) {
+       SceneManager.LoadScene(0);
+      } else {
+        Application.Quit();
+      }
     }
   }
 
