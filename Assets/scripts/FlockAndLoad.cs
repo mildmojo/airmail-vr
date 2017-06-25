@@ -9,6 +9,7 @@ namespace airmail {
     public static List<FlockAndLoad> birds;
 
     public GameObject leader;
+    public GameObject mailbox;
     public CenterAmong centroid;
     public float maxVelocity;
     public float velocityVariance;
@@ -44,6 +45,7 @@ namespace airmail {
     private float _disperseFreq;
     private float _disperseOffset;
     private bool _isCaptive;
+    private bool _isFinale;
 
     void Start () {
       _birdLayer = LayerMask.NameToLayer("birds");
@@ -58,12 +60,15 @@ namespace airmail {
       if (birds == null) birds = new List<FlockAndLoad>();
       birds.Add(this);
       centroid.AddObject(gameObject);
-Debug.Log(Camera.main.transform.rotation);
       var mesh = transform.Find("default");
+
+      // Bob up and down with wing flapping.
       LeanTween.moveLocalY(mesh.gameObject, 0.25f, Random.Range(0.15f, 0.3f))
         .setEaseInSine()
         .setLoopPingPong()
         .setDelay(Random.value * 0.7f);
+
+      // Occasionally change heading toward target.
       StartCoroutine(Steering());
     }
 
@@ -74,7 +79,14 @@ Debug.Log(Camera.main.transform.rotation);
       // disperseCollider.radius = _disperseRadius + 1f + Mathf.Sin(Time.time * _disperseFreq + _disperseOffset) * disperseMaxExpand;
     }
 
-    public void StartCapture() {
+    public bool StartCapture() {
+      // Don't capture the last bird; it's special.
+      // Just one bird left? Start the final animation.
+      if (birds.Count == 1) {
+        StartFinale();
+        return false;
+      }
+
       _isCaptive = true;
       birds.Remove(this);
       centroid.RemoveObject(gameObject);
@@ -83,12 +95,35 @@ Debug.Log(Camera.main.transform.rotation);
 
       // Grow the rest of the flock
       foreach (var bird in birds) {
-        bird.transform.localScale = bird.transform.localScale * 1.25f;
+        bird.transform.localScale *= 1.25f;
+        bird.transform.Find("FlockCollider").localScale *= 0.95f;
       }
+
+      return true;
+    }
+
+    void StartFinale() {
+      Debug.Log("FINALE!!!!");
+      return;
+      _isFinale = true;
+
+      // Come to a stop, physics-wise
+      LeanTween.value(gameObject, val => _body.velocity = val, _body.velocity, Vector3.zero, 0.5f);
+
+      // Tell boss controller to animate us?
+      // Or get a reference to mailbox and do it here?
+      var path = new LTBezierPath();
+      // TODO: this wants transforms, figure out how to make transforms or hand-place them.
+      // path.place(transform.position + transform.up * 2f);
+      // path.place(mailbox.transform.position + mailbox.transform.up * 2f);
+      var flyToMailbox = LeanTween.move(gameObject, path, 2f);
+
+      flyToMailbox.setOnComplete(() => {
+        Debug.Log("We got there!");
+      });
     }
 
     void OnDestroy() {
-Debug.Log("Destroying " + name);
       birds.Remove(this);
       centroid.RemoveObject(gameObject);
     }
@@ -111,6 +146,8 @@ Debug.Log("Destroying " + name);
     }
 
     void fly() {
+      if (_isFinale) return;
+
       // Use busted tweening via Slerp to turn toward target heading
       transform.forward = Vector3.Slerp(transform.forward, _heading, Time.deltaTime * steeringPower);
 
@@ -133,8 +170,9 @@ Debug.Log("Destroying " + name);
       while (true) {
         if (!_isCaptive) {
           _heading = leader.transform.position - transform.position + randomVec(-1f, 1f);
+          Debug.DrawRay(transform.position, _heading * 2f, Color.red, 0.1f);
         }
-        yield return new WaitForSeconds(Random.value * 0.2f + 0.3f);
+        yield return new WaitForSeconds(Random.value * 0.2f + 0.2f);
       }
     }
 

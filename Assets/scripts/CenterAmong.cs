@@ -23,7 +23,6 @@
     }
 
     public void RemoveObject(GameObject obj) {
-      Debug.Log("Remvoing " + obj.name);
       objects.Remove(obj);
     }
 

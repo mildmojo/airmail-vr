@@ -2,6 +2,7 @@
 
   using System.Collections;
   using System.Collections.Generic;
+  using System.Linq;
   using UnityEngine;
 
   public class MailboxController : MonoBehaviour {
@@ -16,65 +17,97 @@
     public GameObject trapField;
     public TrapController trap;
     public GameObject killBox;
+    public LayerMask birdLayer;
 
-    private List<Rigidbody> _captiveBirds;
-    private List<float> _captureDistances;
-    private int _birdLayer;
+    // private List<Rigidbody> _captiveBirds;
     public bool _isOpen;
     private bool _isTweening;
 
+    private class CaptiveBird {
+      public Rigidbody body;
+      public FlockAndLoad controller;
+      public float captureDist;
+      public bool isDead;
+
+      public CaptiveBird(Rigidbody body, FlockAndLoad controller, float captureDist = 0f, bool isDead = false) {
+        this.body = body;
+        this.controller = controller;
+        this.captureDist = captureDist;
+        this.isDead = isDead;
+      }
+    }
+    private List<CaptiveBird> _captiveBirds;
+
     void Awake() {
-      _captiveBirds = new List<Rigidbody>();
-      _captureDistances = new List<float>();
-      _birdLayer = LayerMask.NameToLayer("birds");
+      _captiveBirds = new List<CaptiveBird>();
     }
 
     void Start() {
-      Debug.Log(trap.name);
       trap.OnCapture.AddListener(OnCapture);
     }
 
     void Update() {
-      var scaleOne = new Vector3(1f, 1f, 1f);
+      ReelInCaptiveBirds();
+    }
+
+    void ReelInCaptiveBirds() {
+      var deadBirds = false;
 
       for (var i = _captiveBirds.Count; i-- > 0;) {
         var bird = _captiveBirds[i];
-        var birdCaptureDist = _captureDistances[i];
+
+        // No capture distance? Bird is still decelerating. Ignore.
+        if (bird.captureDist <= 0f) continue;
 
         // Just ignore dead birds, don't clear the array. Yeah, this would be
         // terrible practice in a production game. Here, it doesn't matter
         // because the scene will be reloaded between plays.
-        if (bird == null) {
-          // _captiveBirds.Remove(bird);
+        if (bird.body == null) {
+          bird.isDead = true;
+          deadBirds = true;
           continue;
         }
 
-        var forceDir = killBox.transform.position - bird.transform.position;
-        var trapDir = trapField.transform.position - bird.transform.position;
-        bird.AddForce(trapForce * forceDir.normalized + trapForce/2f * trapDir.normalized);
-        bird.transform.forward = -forceDir;
+        var killBoxDir = killBox.transform.position - bird.body.transform.position;
+        var trapDir = trapField.transform.position - bird.body.transform.position;
+        bird.body.AddForce(trapForce * killBoxDir.normalized + trapForce/2f * trapDir.normalized);
+        bird.body.transform.forward = -killBoxDir;
 
-        var birdTrapDist = (bird.transform.position - trap.transform.position).sqrMagnitude;
-        bird.transform.localScale = Vector3.one * birdTrapDist / birdCaptureDist;
+        // Shrink bird as it approaches killbox.
+        var birdTrapDist = (bird.body.transform.position - trap.transform.position).sqrMagnitude;
+        bird.body.transform.localScale = Vector3.one * birdTrapDist / bird.captureDist;
+      }
+
+      if (deadBirds) {
+        _captiveBirds.RemoveAll(bird => bird.isDead);
       }
     }
 
     public void OnCapture(GameObject bird) {
-      if (_isOpen && _captiveBirds.Count < maxSimulCaptives) {
-        Debug.Log("CAPTURING a BOID");
-        var controller = bird.GetComponent<FlockAndLoad>();
-        controller.StartCapture();
-        var birdBody = bird.GetComponent<Rigidbody>();
-        var initialVelocity = birdBody.velocity;
-        LeanTween
-          .value(bird, val => birdBody.velocity = initialVelocity * val, 1f, 0f, 0.5f)
-          .setEaseOutSine()
-          .setOnComplete(() => {
-            _captiveBirds.Add(birdBody);
-            var sqrDistToTrap = (bird.transform.position - trap.transform.position).sqrMagnitude;
-            _captureDistances.Add(sqrDistToTrap);
-          });
-      }
+      // Don't capture if the trap stream is full.
+      if (!_isOpen || _captiveBirds.Count >= maxSimulCaptives) return;
+
+      Debug.Log("CAPTURING a BOID");
+      var birdBody = bird.GetComponent<Rigidbody>();
+      var controller = bird.GetComponent<FlockAndLoad>();
+      var initialVelocity = birdBody.velocity;
+
+      // Activate capture behavior, like disabling colliders.
+      // If capture fails (because it's the last bird), ignore bird.
+      if (!controller.StartCapture()) return;
+
+      // Start tracking captive bird.
+      var captive = new CaptiveBird(body: birdBody, controller: controller, captureDist: -1f);
+      _captiveBirds.Add(captive);
+
+      // Slow to a stop, then start reeling it in.
+      LeanTween
+        .value(bird, val => birdBody.velocity = initialVelocity * val, 1f, 0f, 0.5f)
+        .setEaseOutSine()
+        .setOnComplete(() => {
+          var sqrDistToTrap = (bird.transform.position - trap.transform.position).sqrMagnitude;
+          captive.captureDist = sqrDistToTrap;
+        });
     }
 
     public void OnSelected() {
@@ -130,19 +163,20 @@
 
       LeanTween
         .rotateLocal(doorHinge, Vector3.zero, doorCloseSpeed)
-        .setEaseInBack();
+        .setEaseOutBounce();
+        // .setEaseInBack();
       if (_isTweening) return;
       _isTweening = true;
       // Rock back & forward
       LeanTween
-        .rotateAround(gameObject, Vector3.right, 10f, 0.4f)
+        .rotateAround(gameObject, Vector3.right, 5f, 0.2f)
         .setPoint(rearRockerHinge.transform.localPosition)
         .setLoopPingPong(1)
         .setEaseOutCubic()
-        .setDelay(doorCloseSpeed)
+        .setDelay(doorCloseSpeed/2f)
         .setOnComplete(() => {
           LeanTween
-            .rotateAround(gameObject, Vector3.right, -5f, 0.1f)
+            .rotateAround(gameObject, Vector3.right, -2.55f, 0.1f)
             .setPoint(frontRockerHinge.transform.localPosition)
             .setLoopPingPong(1)
             .setEaseOutCubic()
@@ -150,10 +184,10 @@
         });
       // Stretch
       LeanTween
-        .scaleY(gameObject, 1.05f, doorCloseSpeed/2f + 0.25f)
+        .scaleY(gameObject, 1.025f, doorCloseSpeed/2f + 0.25f)
         .setLoopPingPong(1)
         .setEaseOutSine()
-        .setDelay(0.75f*doorCloseSpeed);
+        .setDelay(0f);
     }
   }
 
