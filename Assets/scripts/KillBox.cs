@@ -3,7 +3,13 @@
   using UnityEngine;
 
   public class KillBox : MonoBehaviour {
+    public static KillBox Instance;
+
     public LayerMask killLayerMask;
+
+    void Awake() {
+      Instance = this;
+    }
 
     void OnTriggerEnter(Collider c) {
       if (maskMatch(killLayerMask, c.gameObject.layer)) {

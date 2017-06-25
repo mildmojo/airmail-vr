@@ -87,11 +87,7 @@ namespace Airmail {
 
     public bool StartCapture() {
       // Don't capture the last bird; it's special.
-      // Just one bird left? Start the final animation.
-      if (birds.Count == 1) {
-        StartFinale();
-        return false;
-      }
+      if (birds.Count == 1) return false;
 
       isCaptive = true;
       birds.Remove(this);
@@ -106,32 +102,77 @@ namespace Airmail {
         if (bird.isCaptive) continue;
         LeanTween.scale(bird.gameObject, bird.transform.localScale * 1.25f, 0.2f)
           .setEaseOutElastic();
-        disperseCollider.transform.localScale *= 0.95f;
+        disperseCollider.transform.localScale *= 0.93f;
         leader.transform.localScale *= 1.025f;
+      }
+
+      // Just one bird left? Start the final animation.
+      if (birds.Count == 1) {
+        birds[0].StartFinale();
       }
 
       return true;
     }
 
-    void StartFinale() {
+    public void StartFinale() {
       Debug.Log("FINALE!!!!");
-      return;
       _isFinale = true;
+      BossManager.Instance.isFinale = true;
+      _collider.enabled = false;
+      disperseCollider.enabled = false;
 
+      finaleDecelerateStop()
+        .setOnComplete(() => finaleFlyUp()
+          .setOnComplete(() => finaleFlyToMailbox()
+            .setOnComplete(() => finalePause()
+              .setOnComplete(() => finaleCrushMailbox()
+                .setOnComplete(() => finaleLookAround()
+                  .setOnComplete(BossManager.Instance.OnQuit)
+                )
+              )
+            )
+          )
+        );
+    }
+
+    LTDescr finaleDecelerateStop() {
       // Come to a stop, physics-wise
-      LeanTween.value(gameObject, val => _body.velocity = val, _body.velocity, Vector3.zero, 0.5f);
+      _body.angularVelocity = Vector3.zero;
+      return LeanTween.value(gameObject, val => _body.velocity = val, _body.velocity, Vector3.zero, 0.5f);
+    }
 
-      // Tell boss controller to animate us?
-      // Or get a reference to mailbox and do it here?
-      var path = new LTBezierPath();
-      // TODO: this wants transforms, figure out how to make transforms or hand-place them.
-      // path.place(transform.position + transform.up * 2f);
-      // path.place(mailbox.transform.position + mailbox.transform.up * 2f);
-      var flyToMailbox = LeanTween.move(gameObject, path, 2f);
+    LTDescr finaleFlyUp() {
+      leader = finaleTarget;
+      return LeanTween.moveY(gameObject, finaleTarget.transform.position.y, 1f)
+        .setEaseInOutCubic();
+    }
 
-      flyToMailbox.setOnComplete(() => {
-        Debug.Log("We got there!");
-      });
+    LTDescr finaleFlyToMailbox() {
+      var lookAt = Camera.main.transform.position - finaleTarget.transform.position + Camera.main.transform.right * -5f;
+      LeanTween.value(gameObject, vec => transform.up = vec, transform.up, Vector3.up, 2f);
+      LeanTween.value(gameObject, vec => transform.forward = vec, transform.forward, lookAt, 4f);
+      return LeanTween.move(gameObject, finaleTarget.transform.position, 3f)
+        .setEaseOutBack();
+    }
+
+    LTDescr finaleCrushMailbox() {
+      KillBox.Instance.enabled = false;
+      LeanTween.scaleY(mailbox, 0.001f, 0.5f)
+        .setEaseInQuart()
+        .setDelay(0.6f);
+      return LeanTween.moveY(gameObject, 0.25f, 1f)
+        .setEaseInBack();
+    }
+
+    LTDescr finalePause(float delay = 2f) {
+      return LeanTween.delayedCall(delay, () => {});
+    }
+
+    LTDescr finaleLookAround() {
+      _body.velocity = Vector3.zero;
+      _body.angularVelocity = Vector3.zero;
+      flappingAnimator.SetBool("DoLookAround", true);
+      return LeanTween.delayedCall(10f, () => {});
     }
 
     void OnDestroy() {

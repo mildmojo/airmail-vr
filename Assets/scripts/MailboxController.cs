@@ -18,6 +18,11 @@
     public TrapController trap;
     public GameObject killBox;
 
+    [Header("Audio")]
+    public AudioBucket openAudio;
+    public AudioBucket closeAudio;
+
+
     // private List<Rigidbody> _captiveBirds;
     public bool _isOpen;
     private bool _isTweening;
@@ -121,8 +126,10 @@
     }
 
     public void OpenDoor() {
-      // if (_isTweening) return;
-      // LeanTween.cancel(gameObject);
+      if (BossManager.Instance.isFinale) return;
+
+      openAudio.Play();
+      closeAudio.FadeOut();
 
       // Logic-wise, open immediately. Avoids open/closed state race
       //   condition with simultaneous tweens.
@@ -157,7 +164,10 @@
     }
 
     public void CloseDoor() {
-      // LeanTween.cancel(gameObject);
+      if (BossManager.Instance.isFinale) return;
+
+      openAudio.FadeOut();
+      closeAudio.PlayDelayed(0.1f);
 
       // Logic-wise, close immediately. Avoids open/closed state race
       //   condition with simultaneous tweens.

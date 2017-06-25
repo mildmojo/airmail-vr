@@ -7,6 +7,8 @@
   using UnityEngine.UI;
 
   public class BossManager : MonoBehaviour {
+    public static BossManager Instance;
+
     public LayerMask interactables;
     public AudioMixer masterMixer;
     public float audioFadeInTime;
@@ -14,8 +16,15 @@
     public float screenFadeInTime;
     public float screenFadeOutTime;
 
+    [System.NonSerialized]
+    public bool isFinale;
+
     private ScreenFader _screenFader;
     private GvrViewer _gvrViewer;
+
+    void Awake() {
+      Instance = this;
+    }
 
     void Start () {
       var reticle = Camera.main.GetComponent<GvrPointerPhysicsRaycaster>();
@@ -38,7 +47,7 @@
       if (keyQuitPressed || deviceBackPressed) OnQuit();
     }
 
-    void OnQuit() {
+    public void OnQuit() {
       // Fade out audio.
       LeanTween.value(gameObject, val => masterMixer.SetFloat("volume", val), 0f, -80f, audioFadeOutTime)
         .setEaseInCirc();
