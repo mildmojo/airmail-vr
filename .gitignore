@@ -24,8 +24,6 @@ sysinfo.txt
 # Google VR stuff I don't need
 Assets/GoogleVR/*.unitypackage*
 
-Assets/Audio/**/*.mp3
-
 raw-audio
 
 builds/*.apk
