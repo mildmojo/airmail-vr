@@ -1,16 +1,17 @@
-namespace airmail {
+namespace Airmail {
 
   using System.Collections;
   using System.Collections.Generic;
   using UnityEngine;
-  using UnityEngine.Serialization;
 
   public class FlockAndLoad : MonoBehaviour {
     public static List<FlockAndLoad> birds;
 
+    public Animator flappingAnimator;
     public GameObject leader;
     public GameObject mailbox;
     public CenterAmong centroid;
+    public GameObject finaleTarget;
     public float maxVelocity;
     public float velocityVariance;
     public float acceleration;
@@ -35,6 +36,8 @@ namespace airmail {
     // public string foo;
     [System.NonSerialized]
     public float trapRangeAtCapture;
+    [System.NonSerialized]
+    public bool isCaptive;
 
     private int _wpIdx;
     private int _birdLayer;
@@ -44,8 +47,8 @@ namespace airmail {
     private float _disperseRadius;
     private float _disperseFreq;
     private float _disperseOffset;
-    private bool _isCaptive;
     private bool _isFinale;
+    private float _flapSpeedMult;
 
     void Start () {
       _birdLayer = LayerMask.NameToLayer("birds");
@@ -60,19 +63,22 @@ namespace airmail {
       if (birds == null) birds = new List<FlockAndLoad>();
       birds.Add(this);
       centroid.AddObject(gameObject);
-      var mesh = transform.Find("default");
+
+      _flapSpeedMult = Random.Range(2f, 2.5f);
+      flappingAnimator.SetFloat("FlappingSpeed", _flapSpeedMult);
+      flappingAnimator.SetFloat("FlappingCycleOffset", Random.Range(0f, 0.75f));
 
       // Bob up and down with wing flapping.
-      LeanTween.moveLocalY(mesh.gameObject, 0.25f, Random.Range(0.15f, 0.3f))
-        .setEaseInSine()
-        .setLoopPingPong()
-        .setDelay(Random.value * 0.7f);
+      // var mesh = transform.Find("default");
+      // LeanTween.moveLocalY(mesh.gameObject, 0.25f, Random.Range(0.15f, 0.3f))
+      //   .setEaseInSine()
+      //   .setLoopPingPong()
+      //   .setDelay(Random.value * 0.7f);
 
       // Occasionally change heading toward target.
       StartCoroutine(Steering());
     }
 
-    // Update is called once per frame
     void Update () {
       fly();
       Debug.DrawRay(transform.position, _body.velocity, Color.cyan);
@@ -87,16 +93,21 @@ namespace airmail {
         return false;
       }
 
-      _isCaptive = true;
+      isCaptive = true;
       birds.Remove(this);
       centroid.RemoveObject(gameObject);
       disperseCollider.enabled = false;
       _collider.isTrigger = true;
 
+      flappingAnimator.SetFloat("FlappingSpeed", Random.Range(3.7f, 4.2f));
+
       // Grow the rest of the flock
       foreach (var bird in birds) {
-        bird.transform.localScale *= 1.25f;
-        bird.transform.Find("FlockCollider").localScale *= 0.95f;
+        if (bird.isCaptive) continue;
+        LeanTween.scale(bird.gameObject, bird.transform.localScale * 1.25f, 0.2f)
+          .setEaseOutElastic();
+        disperseCollider.transform.localScale *= 0.95f;
+        leader.transform.localScale *= 1.025f;
       }
 
       return true;
@@ -164,12 +175,18 @@ namespace airmail {
       if (centroid.Count > 1) {
         addAccel((centroid.transform.position - transform.position).normalized * clusterAcceleration);
       }
+
+      // Flap wings slower or faster based on velocity.
+      // flappingAnimator.SetFloat("FlappingSpeed", _flapSpeedMult * Mathf.Pow(_body.velocity.magnitude / maxVelocity , 10f));
     }
 
     IEnumerator Steering() {
+      var steeringCount = 0;
       while (true) {
-        if (!_isCaptive) {
+        if (!isCaptive) {
+          steeringCount = (steeringCount + 1) % 8;
           _heading = leader.transform.position - transform.position + randomVec(-1f, 1f);
+          if (steeringCount == 0) _heading += randomVec(-10f, 10f);
           Debug.DrawRay(transform.position, _heading * 2f, Color.red, 0.1f);
         }
         yield return new WaitForSeconds(Random.value * 0.2f + 0.2f);
@@ -177,15 +194,14 @@ namespace airmail {
     }
 
     void addAccel(Vector3 force) {
-      _body.AddForce(force * (_isCaptive ? 0f : 1f));
+      _body.AddForce(force * (isCaptive ? 0f : 1f));
     }
 
     Vector3 randomVec(float min, float max) {
-      var range = max - min;
       return new Vector3(
-        Random.value * range + min,
-        Random.value * range + min,
-        Random.value * range + min
+        Random.Range(min, max),
+        Random.Range(min, max),
+        Random.Range(min, max)
       );
     }
   }

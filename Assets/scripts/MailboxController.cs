@@ -17,7 +17,6 @@
     public GameObject trapField;
     public TrapController trap;
     public GameObject killBox;
-    public LayerMask birdLayer;
 
     // private List<Rigidbody> _captiveBirds;
     public bool _isOpen;
@@ -27,12 +26,14 @@
       public Rigidbody body;
       public FlockAndLoad controller;
       public float captureDist;
+      public Vector3 captureScale;
       public bool isDead;
 
-      public CaptiveBird(Rigidbody body, FlockAndLoad controller, float captureDist = 0f, bool isDead = false) {
+      public CaptiveBird(Rigidbody body, FlockAndLoad controller, float captureDist = 0f, Vector3 captureScale = new Vector3(), bool isDead = false) {
         this.body = body;
         this.controller = controller;
         this.captureDist = captureDist;
+        this.captureScale = captureScale;
         this.isDead = isDead;
       }
     }
@@ -75,7 +76,7 @@
 
         // Shrink bird as it approaches killbox.
         var birdTrapDist = (bird.body.transform.position - trap.transform.position).sqrMagnitude;
-        bird.body.transform.localScale = Vector3.one * birdTrapDist / bird.captureDist;
+        bird.body.transform.localScale = bird.captureScale * birdTrapDist / bird.captureDist;
       }
 
       if (deadBirds) {
@@ -92,12 +93,13 @@
       var controller = bird.GetComponent<FlockAndLoad>();
       var initialVelocity = birdBody.velocity;
 
+      var captive = new CaptiveBird(body: birdBody, controller: controller, captureDist: -1f, captureScale: birdBody.transform.localScale);
+
       // Activate capture behavior, like disabling colliders.
       // If capture fails (because it's the last bird), ignore bird.
       if (!controller.StartCapture()) return;
 
       // Start tracking captive bird.
-      var captive = new CaptiveBird(body: birdBody, controller: controller, captureDist: -1f);
       _captiveBirds.Add(captive);
 
       // Slow to a stop, then start reeling it in.

@@ -39,9 +39,11 @@
     }
 
     void OnQuit() {
+      // Fade out audio.
       LeanTween.value(gameObject, val => masterMixer.SetFloat("volume", val), 0f, -80f, audioFadeOutTime)
         .setEaseInCirc();
-      _screenFader.FadeOut(2f, () => Application.Quit());
+      // Fade out visuals.
+      _screenFader.FadeOut(screenFadeOutTime, Application.Quit);
     }
   }
 

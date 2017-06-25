@@ -7,15 +7,24 @@ namespace Airmail {
 
   [RequireComponent(typeof(AudioSource))]
   public class AudioBucket : MonoBehaviour {
+    public float pitch = 1f;
     public float pitchVariance;
+    public bool playOnAwake;
+    public bool loop;
     public List<AudioClip> clips;
 
     private ShuffleDeck _deck;
     private AudioSource _audioSource;
+    private bool _loopingAllowed;
 
     void Start() {
       _deck = new ShuffleDeck(clips);
       _audioSource = GetComponent<AudioSource>();
+      if (playOnAwake) Play();
+    }
+
+    void Update() {
+      if (loop && _loopingAllowed && !_audioSource.isPlaying) Play();
     }
 
     public void PlayDelayed(float delay) {
@@ -23,7 +32,8 @@ namespace Airmail {
     }
 
     public void Play() {
-      _audioSource.pitch = 1f + Random.Range(-pitchVariance/2f, pitchVariance/2f);
+      _loopingAllowed = true;
+      _audioSource.pitch = pitch + Random.Range(-pitchVariance/2f, pitchVariance/2f);
       if (_audioSource.isPlaying) {
         FadeIn();
       } else {
@@ -43,6 +53,9 @@ namespace Airmail {
       }
     }
 
+    // TODO: Bug: If FadeStop is called on a looping bucket when clip has less than
+    //   0.2s left (fade duration), clip may end and briefly start again at full
+    //   volume before fade out completes.
     public void FadeStop(System.Action done = null) {
       FadeOut(() => {
         HardStop();
@@ -67,6 +80,7 @@ namespace Airmail {
     }
 
     public void HardStop() {
+      _loopingAllowed = false;
       _audioSource.Stop();
     }
   }
