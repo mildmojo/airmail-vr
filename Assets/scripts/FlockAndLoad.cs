@@ -174,8 +174,11 @@ namespace Airmail {
     }
 
     void OnDestroy() {
-      birds.Remove(this);
-      centroid.RemoveObject(gameObject);
+      // WTF why is this still called when the component is disabled?
+      if (enabled) {
+        birds.Remove(this);
+        centroid.RemoveObject(gameObject);
+      }
     }
 
     void OnTriggerStay(Collider c) {
