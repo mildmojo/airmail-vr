@@ -40,7 +40,6 @@ namespace Airmail {
     public bool isCaptive;
 
     private int _wpIdx;
-    private int _birdLayer;
     private Vector3 _heading;
     private Rigidbody _body;
     private MeshCollider _collider;
@@ -51,7 +50,6 @@ namespace Airmail {
     private float _flapSpeedMult;
 
     void Start () {
-      _birdLayer = LayerMask.NameToLayer("birds");
       _body = GetComponent<Rigidbody>();
       // disperseCollider = GetComponent<SphereCollider>();
       _collider = GetComponent<MeshCollider>();
@@ -193,8 +191,9 @@ namespace Airmail {
       return waypoints[_wpIdx];
     }
 
+    // It's a bird if it's on the same layer as us.
     bool isBird(Collider c) {
-      return c.gameObject.layer == _birdLayer;
+      return gameObject.layer == c.gameObject.layer;
     }
 
     void fly() {

@@ -8,6 +8,7 @@
     public List<Transform> waypoints;
     public float distance;
     public float speed;
+    public LayerMask birdLayerMask;
 
     private int currentWaypointIdx;
     private bool isMoving;
@@ -28,7 +29,7 @@
     }
 
     void OnTriggerEnter(Collider c) {
-      if (!isMoving && c.gameObject.layer == LayerMask.NameToLayer("birds")) {
+      if (!isMoving && maskMatch(birdLayerMask, c.gameObject.layer)) {
         Debug.Log("moving");
         isMoving = true;
         currentWaypointIdx++;
@@ -46,6 +47,11 @@
           yield return true;
         }
       }
+    }
+
+    // If there's a 1 in the mask at the layer num's bit position, it's a match.
+    bool maskMatch(LayerMask mask, int layerNum) {
+      return mask == (mask | (1 << layerNum));
     }
   }
 
