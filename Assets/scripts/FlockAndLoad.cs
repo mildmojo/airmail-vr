@@ -16,7 +16,6 @@ namespace Airmail {
     public float velocityVariance;
     public float acceleration;
     public float clusterAcceleration;
-    public List<GameObject> waypoints;
 
     public float steeringPower;
     public float steeringVariance;
@@ -186,12 +185,6 @@ namespace Airmail {
         var accelVector = (transform.position - c.transform.position).normalized * disperseAccel;
         addAccel(accelVector);
       }
-    }
-
-    GameObject nextWaypoint() {
-      _wpIdx++;
-      if (_wpIdx >= waypoints.Count) _wpIdx = 0;
-      return waypoints[_wpIdx];
     }
 
     // It's a bird if it's on the same layer as us.
