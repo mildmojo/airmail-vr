@@ -47,8 +47,10 @@ namespace Airmail {
     private float _disperseOffset;
     private bool _isFinale;
     private float _flapSpeedMult;
+    private BossManager _config;
 
     void Start () {
+      _config = BossManager.Instance;
       _body = GetComponent<Rigidbody>();
       // disperseCollider = GetComponent<SphereCollider>();
       _collider = GetComponent<MeshCollider>();
@@ -59,6 +61,7 @@ namespace Airmail {
       steeringPower += Random.Range(0f, steeringVariance) - steeringVariance / 2f;
       if (birds == null) birds = new List<FlockAndLoad>();
       birds.Add(this);
+      _config.birdCount++;
       centroid.AddObject(gameObject);
 
       _flapSpeedMult = Random.Range(2f, 2.5f);
@@ -97,6 +100,17 @@ namespace Airmail {
       // Grow the rest of the flock
       foreach (var bird in birds) {
         if (bird.isCaptive) continue;
+        // Scale from 1.0 to `maxBirdScale`
+        // Range is `maxBirdScale - 1.0f`
+        // 0% along range is `birds.Count == _config.birdCount`
+        // 100% along range is `birds.Count == 1`
+        // Progress range is `_config.birdCount - 1`
+        // Progress is `1f / (birds.Count / (_config.birdCount - 1))`
+
+        // var pctComplete = 1f / (birds.Count / (_config.birdCount - 1));
+        // var newScale = 1f + _config.birdScaleCurve.Evaluate(pctComplete) * (_config.maxBirdScale - 1f) * pctComplete;
+        // LeanTween.scale(bird.gameObject, Vector3.one * newScale, 0.2f)
+        //   .setEaseOutElastic();
         LeanTween.scale(bird.gameObject, bird.transform.localScale * 1.25f, 0.2f)
           .setEaseOutElastic();
         disperseCollider.transform.localScale *= 0.93f;

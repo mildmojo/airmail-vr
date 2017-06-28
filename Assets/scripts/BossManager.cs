@@ -17,6 +17,13 @@
     public float screenFadeInTime;
     public float screenFadeOutTime;
 
+    [Header("Configuration")]
+    public float maxBirdScale;
+    public AnimationCurve birdScaleCurve = AnimationCurve.Linear(0, 0, 1, 1);
+
+    [System.NonSerialized]
+    public float birdCount;
+
     [System.NonSerialized]
     public bool isFinale;
 
