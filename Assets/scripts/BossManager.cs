@@ -65,11 +65,12 @@
 
     void DoQuit() {
       // Only quit if this is the only scene loaded. Otherwise load scene 0.
-      if (SceneManager.GetSceneAt(0) != SceneManager.GetActiveScene()) {
+// TODO: UNCOMMENT FOR PRODUCTION BUILD?
+      // if (SceneManager.GetSceneAt(0) != SceneManager.GetActiveScene()) {
        SceneManager.LoadScene(0);
-      } else {
-        Application.Quit();
-      }
+      // } else {
+        // Application.Quit();
+      // }
     }
   }
 

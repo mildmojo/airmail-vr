@@ -11,6 +11,7 @@ namespace Airmail {
     public float pitchVariance;
     public bool playOnAwake;
     public bool loop;
+    public bool interruptible;
     public List<AudioClip> clips;
 
     private ShuffleDeck _deck;
@@ -34,10 +35,10 @@ namespace Airmail {
     public void Play() {
       _loopingAllowed = true;
       _audioSource.pitch = pitch + Random.Range(-pitchVariance/2f, pitchVariance/2f);
-      if (_audioSource.isPlaying) {
+      if (_audioSource.isPlaying && !interruptible) {
         FadeIn();
       } else {
-        // HardStop();
+        HardStop();
         _audioSource.clip = (AudioClip) _deck.Draw();
         _audioSource.Play();
         _audioSource.volume = 1f;

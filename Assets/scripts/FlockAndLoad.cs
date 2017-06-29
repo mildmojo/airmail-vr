@@ -3,11 +3,16 @@ namespace Airmail {
   using System.Collections;
   using System.Collections.Generic;
   using UnityEngine;
+  using UnityEngine.Audio;
 
   public class FlockAndLoad : MonoBehaviour {
     public static List<FlockAndLoad> birds;
 
     public Animator flappingAnimator;
+    public AudioBucket deathRattle;
+    public AudioBucket flapSound;
+    public AudioMixer mainMixer;
+    public AudioSource crashSound;
     public GameObject leader;
     public GameObject mailbox;
     public CenterAmong centroid;
@@ -96,24 +101,12 @@ namespace Airmail {
       _collider.isTrigger = true;
 
       flappingAnimator.SetFloat("FlappingSpeed", Random.Range(3.7f, 4.2f));
+      deathRattle.PlayDelayed(0.5f);
 
       // Grow the rest of the flock
       foreach (var bird in birds) {
         if (bird.isCaptive) continue;
-        // Scale from 1.0 to `maxBirdScale`
-        // Range is `maxBirdScale - 1.0f`
-        // 0% along range is `birds.Count == _config.birdCount`
-        // 100% along range is `birds.Count == 1`
-        // Progress range is `_config.birdCount - 1`
-        // Progress is `1f / (birds.Count / (_config.birdCount - 1))`
-
-        // var pctComplete = 1f / (birds.Count / (_config.birdCount - 1));
-        // var newScale = 1f + _config.birdScaleCurve.Evaluate(pctComplete) * (_config.maxBirdScale - 1f) * pctComplete;
-        // LeanTween.scale(bird.gameObject, Vector3.one * newScale, 0.2f)
-        //   .setEaseOutElastic();
-        LeanTween.scale(bird.gameObject, bird.transform.localScale * 1.25f, 0.2f)
-          .setEaseOutElastic();
-        disperseCollider.transform.localScale *= 0.93f;
+        bird.Grow();
         leader.transform.localScale *= 1.025f;
       }
 
@@ -123,6 +116,27 @@ namespace Airmail {
       }
 
       return true;
+    }
+
+    public void Grow() {
+      // Scale from 1.0 to `maxBirdScale`
+      // Range is `maxBirdScale - 1.0f`
+      // 0% along range is `birds.Count == _config.birdCount`
+      // 100% along range is `birds.Count == 1`
+      // Progress range is `_config.birdCount - 1`
+      // Progress is `1f / (birds.Count / (_config.birdCount - 1))`
+
+      // var pctComplete = 1f / (birds.Count / (_config.birdCount - 1));
+      // var newScale = 1f + _config.birdScaleCurve.Evaluate(pctComplete) * (_config.maxBirdScale - 1f) * pctComplete;
+      // LeanTween.scale(gameObject, Vector3.one * newScale, 0.2f)
+      //   .setEaseOutElastic();
+      LeanTween.scale(gameObject, transform.localScale * 1.25f, 0.2f)
+        .setEaseOutElastic();
+      // LeanTween.value(gameObject, val => )
+      disperseCollider.transform.localScale *= 0.93f;
+
+      mainMixer.SetFloat("birdFlapCutoff", 1000f - 1000f * transform.localScale.magnitude / (_config.maxBirdScale / 2f));
+      flapSound.pitch *= 0.96f;
     }
 
     public void StartFinale() {
@@ -168,9 +182,10 @@ namespace Airmail {
 
     LTDescr finaleCrushMailbox() {
       KillBox.Instance.enabled = false;
-      LeanTween.scaleY(mailbox, 0.001f, 0.5f)
+      LeanTween.scaleY(mailbox, 0.001f, 0.4f)
         .setEaseInQuart()
         .setDelay(0.6f);
+      LeanTween.delayedCall(0.9f, crashSound.Play);
       return LeanTween.moveY(gameObject, 0.25f, 1f)
         .setEaseInBack();
     }
@@ -227,6 +242,7 @@ namespace Airmail {
       }
 
       // Flap wings slower or faster based on velocity.
+      // TODO: FIX THIS
       // flappingAnimator.SetFloat("FlappingSpeed", _flapSpeedMult * Mathf.Pow(_body.velocity.magnitude / maxVelocity , 10f));
     }
 
